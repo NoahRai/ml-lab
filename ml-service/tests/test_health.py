@@ -51,6 +51,28 @@ def test_regression_experiment_returns_real_metrics() -> None:
     assert body["testing_rows"] == 6
 
 
+def test_experiment_compares_requested_models_on_same_split() -> None:
+    rows = ["hours,attendance,grade"]
+    rows.extend(f"{hour},{70 + hour},{50 + hour * 4}" for hour in range(1, 31))
+    response = TestClient(app).post(
+        "/experiment/run",
+        files={"file": ("grades.csv", "\n".join(rows), "text/csv")},
+        data={
+            "target_column": "grade",
+            "problem_type": "regression",
+            "model_types": ["linear", "random_forest", "gradient_boosting"],
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert [model["name"] for model in body["models"]] == [
+        "Linear Regression",
+        "Random Forest",
+        "Gradient Boosting",
+    ]
+
+
 def test_classification_experiment_returns_real_metrics() -> None:
     rows = ["hours,attendance,passed"]
     rows.extend(f"{hour},{65 + hour},{'yes' if hour > 15 else 'no'}" for hour in range(1, 31))

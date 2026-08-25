@@ -47,6 +47,7 @@ async def run_experiment(
     target_column: str = Form(...),
     problem_type: ProblemType = Form(...),
     train_split: float = Form(0.8),
+    model_types: list[str] = Form(["linear"]),
 ) -> ExperimentResult:
     """Train and evaluate a first baseline while keeping test data held out."""
     try:
@@ -54,6 +55,7 @@ async def run_experiment(
             UploadedDataset(filename=file.filename or "upload.csv", content=await file.read()),
             target_column=target_column,
             problem_type=problem_type,
+            model_types=model_types,
             train_split=train_split,
         )
     except DatasetValidationError as error:

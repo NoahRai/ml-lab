@@ -1,9 +1,4 @@
-from time import perf_counter
-
 import pandas as pd
-from sklearn.compose import ColumnTransformer
-from sklearn.impute import SimpleImputer
-from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.metrics import (
     accuracy_score,
     f1_score,
@@ -14,21 +9,22 @@ from sklearn.metrics import (
     recall_score,
 )
 from sklearn.model_selection import train_test_split
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
+from app.models.model_factory import ModelFactory
+from app.preprocessing.preprocessor import DataPreprocessor
 from app.schemas.experiment import ExperimentResult, ModelResult, ProblemType
 from app.services.dataset_service import DatasetValidationError, UploadedDataset
 
 
 class ExperimentService:
-    """Runs the first reproducible baseline for a validated tabular dataset."""
+    """Runs reproducible comparisons using one shared train/test split."""
 
     def run(
         self,
         upload: UploadedDataset,
         target_column: str,
         problem_type: ProblemType,
+        model_types: list[str] | None = None,
         train_split: float = 0.8,
         random_state: int = 42,
     ) -> ExperimentResult:
@@ -40,18 +36,31 @@ class ExperimentService:
 
         features, target = self._prepare_target(dataframe, target_column, problem_type)
         x_train, x_test, y_train, y_test = self._split(features, target, problem_type, train_split, random_state)
-        pipeline = self._build_pipeline(x_train, problem_type)
-
-        started_at = perf_counter()
-        pipeline.fit(x_train, y_train)
-        training_time_ms = round((perf_counter() - started_at) * 1000, 2)
-        predictions = pipeline.predict(x_test)
-        metrics = self._evaluate(y_test, predictions, problem_type)
-        model_name = "Linear Regression" if problem_type == "regression" else "Logistic Regression"
+        selected_models = model_types or ["linear"]
+        self._validate_models(selected_models)
+        preprocessor = DataPreprocessor()
+        processed_train = preprocessor.fit_transform(x_train)
+        processed_test = preprocessor.transform(x_test)
+        model_results = []
+        for model_type in selected_models:
+            try:
+                model = ModelFactory.create_model(model_type, problem_type)
+            except ValueError as error:
+                raise DatasetValidationError(str(error)) from error
+            model.train(processed_train, y_train)
+            predictions = model.predict(processed_test)
+            model_results.append(
+                ModelResult(
+                    name=model.name,
+                    metrics=self._evaluate(y_test, predictions, problem_type),
+                    training_time_ms=model.training_time_ms or 0,
+                )
+            )
         primary_metric_name = "r2" if problem_type == "regression" else "accuracy"
+        best_result = max(model_results, key=lambda result: result.metrics[primary_metric_name])
         notes = [
             "Preprocessing was fit on training data only; test data was held out until evaluation.",
-            "This is a baseline result. Compare it with additional model families in the next phase.",
+            "All models used the same split so their results are directly comparable.",
         ]
         return ExperimentResult(
             dataset_name=upload.filename,
@@ -59,10 +68,10 @@ class ExperimentService:
             problem_type=problem_type,
             training_rows=len(x_train),
             testing_rows=len(x_test),
-            models=[ModelResult(name=model_name, metrics=metrics, training_time_ms=training_time_ms)],
-            best_model=model_name,
+            models=model_results,
+            best_model=best_result.name,
             primary_metric_name=primary_metric_name,
-            primary_metric_value=metrics[primary_metric_name],
+            primary_metric_value=best_result.metrics[primary_metric_name],
             notes=notes,
         )
 
@@ -123,30 +132,13 @@ class ExperimentService:
             ) from error
 
     @staticmethod
-    def _build_pipeline(features: pd.DataFrame, problem_type: ProblemType) -> Pipeline:
-        numeric_columns = features.select_dtypes(include="number").columns.tolist()
-        categorical_columns = [column for column in features.columns if column not in numeric_columns]
-        transformers = []
-        if numeric_columns:
-            transformers.append(
-                ("numeric", Pipeline([("imputer", SimpleImputer(strategy="median")), ("scaler", StandardScaler())]), numeric_columns)
-            )
-        if categorical_columns:
-            transformers.append(
-                (
-                    "categorical",
-                    Pipeline(
-                        [
-                            ("imputer", SimpleImputer(strategy="most_frequent")),
-                            ("encoder", OneHotEncoder(handle_unknown="ignore")),
-                        ]
-                    ),
-                    categorical_columns,
-                )
-            )
-        preprocessor = ColumnTransformer(transformers=transformers, remainder="drop")
-        estimator = LinearRegression() if problem_type == "regression" else LogisticRegression(max_iter=1_000)
-        return Pipeline([("preprocessor", preprocessor), ("model", estimator)])
+    def _validate_models(model_types: list[str]) -> None:
+        if not model_types:
+            raise DatasetValidationError("Select at least one model to run.")
+        if len(model_types) > 3:
+            raise DatasetValidationError("You can compare up to three models in one experiment.")
+        if len(set(model_types)) != len(model_types):
+            raise DatasetValidationError("Select each model only once.")
 
     @staticmethod
     def _evaluate(target: pd.Series, predictions: object, problem_type: ProblemType) -> dict[str, float]:

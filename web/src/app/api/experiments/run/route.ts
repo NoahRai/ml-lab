@@ -5,6 +5,7 @@ export async function POST(request: Request) {
   const file = formData.get("file");
   const targetColumn = formData.get("target_column");
   const problemType = formData.get("problem_type");
+  const modelTypes = formData.getAll("model_types");
 
   if (!(file instanceof File) || typeof targetColumn !== "string" || typeof problemType !== "string") {
     return NextResponse.json({ detail: "Dataset, target column, and problem type are required." }, { status: 400 });
@@ -22,6 +23,9 @@ export async function POST(request: Request) {
   upstreamData.set("target_column", targetColumn);
   upstreamData.set("problem_type", problemType);
   upstreamData.set("train_split", "0.8");
+  for (const modelType of modelTypes) {
+    if (typeof modelType === "string") upstreamData.append("model_types", modelType);
+  }
 
   try {
     const response = await fetch(new URL("/experiment/run", serviceUrl), {
