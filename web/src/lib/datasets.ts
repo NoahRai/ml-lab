@@ -27,3 +27,24 @@ export interface DatasetAnalysis {
 export interface DatasetApiError {
   detail: string;
 }
+
+export type ProblemType = "classification" | "regression";
+
+export interface ExperimentModelResult {
+  name: string;
+  metrics: Record<string, number>;
+  training_time_ms: number;
+}
+
+export interface ExperimentResult {
+  dataset_name: string;
+  target_column: string;
+  problem_type: ProblemType;
+  training_rows: number;
+  testing_rows: number;
+  models: ExperimentModelResult[];
+  best_model: string;
+  primary_metric_name: string;
+  primary_metric_value: number;
+  notes: string[];
+}

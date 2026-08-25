@@ -8,7 +8,7 @@ ML Lab is an interactive experimentation platform that helps people upload tabul
 
 ## Phase 1 status
 
-This repository currently provides the product foundation plus CSV upload and inspection: a polished Next.js landing page, a guided experiment setup screen, and an independently deployable FastAPI service. Model training, storage, and AI explanations are deliberate later phases.
+This repository currently provides a first end-to-end baseline: CSV inspection, target/task selection, and Linear Regression or Logistic Regression training with a leakage-safe 80/20 split. Additional model families, storage, and AI explanations are deliberate later phases.
 
 ## Architecture
 
@@ -60,7 +60,9 @@ Visit `http://localhost:8000/health` to confirm the service is healthy.
 
 `POST /dataset/analyze` accepts a CSV upload and returns dataset dimensions, missing-value counts, detected column types, target candidates, and a safe 15-row preview. The service enforces 10 MB, 50,000-row, and 100-column limits.
 
-Planned endpoints: `POST /experiment/run` and `POST /predict`.
+`POST /experiment/run` accepts a CSV, target column, and problem type. It uses a consistent reproducible split, fits preprocessing only on training rows, and returns the baseline's real test metrics.
+
+Planned endpoint: `POST /predict`.
 
 ## ML pipeline roadmap
 

@@ -32,3 +32,35 @@ def test_dataset_analysis_rejects_duplicate_headers() -> None:
 
     assert response.status_code == 422
     assert "duplicate column headers" in response.json()["detail"]
+
+
+def test_regression_experiment_returns_real_metrics() -> None:
+    rows = ["hours,attendance,grade"]
+    rows.extend(f"{hour},{70 + hour},{50 + hour * 4}" for hour in range(1, 31))
+    response = TestClient(app).post(
+        "/experiment/run",
+        files={"file": ("grades.csv", "\n".join(rows), "text/csv")},
+        data={"target_column": "grade", "problem_type": "regression"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["best_model"] == "Linear Regression"
+    assert body["models"][0]["metrics"]["r2"] > 0.99
+    assert body["training_rows"] == 24
+    assert body["testing_rows"] == 6
+
+
+def test_classification_experiment_returns_real_metrics() -> None:
+    rows = ["hours,attendance,passed"]
+    rows.extend(f"{hour},{65 + hour},{'yes' if hour > 15 else 'no'}" for hour in range(1, 31))
+    response = TestClient(app).post(
+        "/experiment/run",
+        files={"file": ("outcomes.csv", "\n".join(rows), "text/csv")},
+        data={"target_column": "passed", "problem_type": "classification"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["best_model"] == "Logistic Regression"
+    assert body["models"][0]["metrics"]["accuracy"] > 0.9
