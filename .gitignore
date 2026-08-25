@@ -1,0 +1,17 @@
+# JavaScript
+web/node_modules/
+web/.next/
+web/out/
+
+# Python
+ml-service/.venv/
+ml-service/__pycache__/
+ml-service/.pytest_cache/
+web/.pytest_cache/
+**/*.py[cod]
+
+# Environment and OS files
+.env
+.env.local
+ml-service/.env
+.DS_Store
