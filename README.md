@@ -95,6 +95,14 @@ pytest
 
 Deploy `web/` to Vercel. Build and deploy `ml-service/` from its Dockerfile to a container host, then set `ML_API_URL` in the web environment. Do not commit secrets; use `.env.example` as the key reference.
 
+### Production checklist
+
+1. Deploy `web/` to Vercel and set `ML_API_URL`, `DATABASE_URL`, and Supabase/OpenAI variables only in the platform environment.
+2. Deploy `ml-service/` from its Dockerfile to a container host and set `ML_ALLOWED_ORIGINS` to the Vercel domain.
+3. Run Prisma migrations against the production PostgreSQL database before enabling saved experiments.
+4. Configure Google OAuth redirect URLs in Supabase for the production URL.
+5. The ML service enforces file, row, column, and model-count limits and uses a per-instance request limit. For multi-instance production scale, replace the in-memory limiter with Redis or a platform rate-limiting service.
+
 ## Future improvements
 
 - CSV inspection and robust validation

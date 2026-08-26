@@ -1,6 +1,10 @@
 """FastAPI entry point. ML execution endpoints are added in later phases."""
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+import logging
+from time import perf_counter
+
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from app.config import settings
@@ -8,6 +12,10 @@ from app.schemas.dataset import DatasetAnalysis
 from app.schemas.experiment import ExperimentResult, ProblemType
 from app.services.dataset_service import DatasetInspectionService, DatasetValidationError, UploadedDataset
 from app.services.experiment_service import ExperimentService
+from app.utils.rate_limit import InMemoryRateLimiter
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+logger = logging.getLogger(__name__)
 
 
 class HealthResponse(BaseModel):
@@ -22,6 +30,22 @@ app = FastAPI(
 )
 dataset_inspection_service = DatasetInspectionService()
 experiment_service = ExperimentService()
+rate_limiter = InMemoryRateLimiter()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[origin.strip() for origin in settings.allowed_origins.split(",") if origin.strip()],
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["content-type"],
+)
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    started_at = perf_counter()
+    response = await call_next(request)
+    logger.info("request method=%s path=%s status=%s duration_ms=%.2f", request.method, request.url.path, response.status_code, (perf_counter() - started_at) * 1000)
+    return response
 
 
 @app.get("/health", response_model=HealthResponse, tags=["system"])
@@ -31,7 +55,7 @@ def health_check() -> HealthResponse:
 
 
 @app.post("/dataset/analyze", response_model=DatasetAnalysis, tags=["datasets"])
-async def analyze_dataset(file: UploadFile = File(...)) -> DatasetAnalysis:
+async def analyze_dataset(file: UploadFile = File(...), _: None = Depends(rate_limiter.check)) -> DatasetAnalysis:
     """Validate and inspect a CSV before it reaches the experiment pipeline."""
     try:
         return dataset_inspection_service.analyze(
@@ -48,6 +72,7 @@ async def run_experiment(
     problem_type: ProblemType = Form(...),
     train_split: float = Form(0.8),
     model_types: list[str] = Form(["linear"]),
+    _: None = Depends(rate_limiter.check),
 ) -> ExperimentResult:
     """Train and evaluate a first baseline while keeping test data held out."""
     try:
