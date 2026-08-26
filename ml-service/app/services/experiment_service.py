@@ -7,12 +7,21 @@ from sklearn.metrics import (
     precision_score,
     r2_score,
     recall_score,
+    confusion_matrix,
 )
 from sklearn.model_selection import train_test_split
 
 from app.models.model_factory import ModelFactory
 from app.preprocessing.preprocessor import DataPreprocessor
-from app.schemas.experiment import ExperimentResult, ModelResult, ProblemType
+from app.schemas.experiment import (
+    ConfusionMatrix,
+    ErrorAnalysisRow,
+    ExperimentResult,
+    FeatureImportance,
+    ModelResult,
+    PredictionPoint,
+    ProblemType,
+)
 from app.services.dataset_service import DatasetValidationError, UploadedDataset
 
 
@@ -42,6 +51,7 @@ class ExperimentService:
         processed_train = preprocessor.fit_transform(x_train)
         processed_test = preprocessor.transform(x_test)
         model_results = []
+        completed_models = []
         for model_type in selected_models:
             try:
                 model = ModelFactory.create_model(model_type, problem_type)
@@ -49,6 +59,7 @@ class ExperimentService:
                 raise DatasetValidationError(str(error)) from error
             model.train(processed_train, y_train)
             predictions = model.predict(processed_test)
+            completed_models.append((model, predictions))
             model_results.append(
                 ModelResult(
                     name=model.name,
@@ -58,6 +69,8 @@ class ExperimentService:
             )
         primary_metric_name = "r2" if problem_type == "regression" else "accuracy"
         best_result = max(model_results, key=lambda result: result.metrics[primary_metric_name])
+        best_index = model_results.index(best_result)
+        best_model, best_predictions = completed_models[best_index]
         notes = [
             "Preprocessing was fit on training data only; test data was held out until evaluation.",
             "All models used the same split so their results are directly comparable.",
@@ -73,6 +86,13 @@ class ExperimentService:
             primary_metric_name=primary_metric_name,
             primary_metric_value=best_result.metrics[primary_metric_name],
             notes=notes,
+            feature_importance=[
+                FeatureImportance(feature=feature, importance=importance)
+                for feature, importance in best_model.get_feature_importance(preprocessor.get_feature_names())[:10]
+            ],
+            prediction_points=self._prediction_points(y_test, best_predictions, problem_type),
+            error_analysis=self._error_analysis(x_test, y_test, best_predictions, problem_type),
+            confusion_matrix=self._confusion_matrix(y_test, best_predictions, problem_type),
         )
 
     @staticmethod
@@ -155,3 +175,42 @@ class ExperimentService:
             "recall": round(float(recall_score(target, predictions, average="weighted", zero_division=0)), 4),
             "f1": round(float(f1_score(target, predictions, average="weighted", zero_division=0)), 4),
         }
+
+    @staticmethod
+    def _prediction_points(target: pd.Series, predictions: object, problem_type: ProblemType) -> list[PredictionPoint]:
+        points = []
+        for actual, predicted in zip(target.tolist(), predictions, strict=False):
+            if problem_type == "regression":
+                actual_value = float(actual)
+                predicted_value = float(predicted)
+                points.append(PredictionPoint(actual=actual_value, predicted=predicted_value, residual=round(actual_value - predicted_value, 4)))
+            else:
+                points.append(PredictionPoint(actual=str(actual), predicted=str(predicted)))
+        return points
+
+    @staticmethod
+    def _error_analysis(
+        features: pd.DataFrame, target: pd.Series, predictions: object, problem_type: ProblemType
+    ) -> list[ErrorAnalysisRow]:
+        rows = []
+        for (_, feature_row), actual, predicted in zip(features.iterrows(), target.tolist(), predictions, strict=False):
+            serialized_features = {
+                column: None if pd.isna(value) else value.item() if hasattr(value, "item") else value
+                for column, value in feature_row.items()
+            }
+            if problem_type == "regression":
+                error = abs(float(actual) - float(predicted))
+                rows.append(ErrorAnalysisRow(actual=float(actual), predicted=float(predicted), error=round(error, 4), feature_values=serialized_features))
+            elif actual != predicted:
+                rows.append(ErrorAnalysisRow(actual=str(actual), predicted=str(predicted), feature_values=serialized_features))
+        if problem_type == "regression":
+            rows.sort(key=lambda row: row.error or 0, reverse=True)
+        return rows[:10]
+
+    @staticmethod
+    def _confusion_matrix(target: pd.Series, predictions: object, problem_type: ProblemType) -> ConfusionMatrix | None:
+        if problem_type != "classification":
+            return None
+        labels = sorted(set(target.astype(str)).union(str(value) for value in predictions))
+        matrix = confusion_matrix(target.astype(str), [str(value) for value in predictions], labels=labels)
+        return ConfusionMatrix(labels=labels, matrix=matrix.tolist())

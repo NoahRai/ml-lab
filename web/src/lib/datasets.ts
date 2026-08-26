@@ -47,4 +47,13 @@ export interface ExperimentResult {
   primary_metric_name: string;
   primary_metric_value: number;
   notes: string[];
+  feature_importance: Array<{ feature: string; importance: number }>;
+  prediction_points: Array<{ actual: number | string; predicted: number | string; residual: number | null }>;
+  error_analysis: Array<{
+    actual: number | string;
+    predicted: number | string;
+    error: number | null;
+    feature_values: Record<string, string | number | boolean | null>;
+  }>;
+  confusion_matrix: { labels: string[]; matrix: number[][] } | null;
 }

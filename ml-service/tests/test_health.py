@@ -49,6 +49,8 @@ def test_regression_experiment_returns_real_metrics() -> None:
     assert body["models"][0]["metrics"]["r2"] > 0.99
     assert body["training_rows"] == 24
     assert body["testing_rows"] == 6
+    assert len(body["prediction_points"]) == 6
+    assert body["feature_importance"]
 
 
 def test_experiment_compares_requested_models_on_same_split() -> None:
@@ -86,3 +88,4 @@ def test_classification_experiment_returns_real_metrics() -> None:
     body = response.json()
     assert body["best_model"] == "Logistic Regression"
     assert body["models"][0]["metrics"]["accuracy"] > 0.9
+    assert body["confusion_matrix"]["labels"] == ["no", "yes"]

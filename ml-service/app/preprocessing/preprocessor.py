@@ -39,3 +39,8 @@ class DataPreprocessor:
         if self.transformer is None:
             raise RuntimeError("DataPreprocessor must be fit before transforming test data.")
         return self.transformer.transform(features)
+
+    def get_feature_names(self) -> list[str]:
+        if self.transformer is None:
+            raise RuntimeError("DataPreprocessor must be fit before reading feature names.")
+        return [name.replace("numeric__", "").replace("categorical__", "") for name in self.transformer.get_feature_names_out()]
