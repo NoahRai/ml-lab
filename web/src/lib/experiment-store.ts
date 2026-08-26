@@ -7,7 +7,7 @@ export function isDatabaseConfigured() {
   return Boolean(process.env.DATABASE_URL);
 }
 
-export async function saveExperiment(result: ExperimentResult) {
+export async function saveExperiment(result: ExperimentResult, user: { id: string; email: string; name?: string | null }) {
   const metadata: Prisma.InputJsonValue = {
     rows: result.training_rows + result.testing_rows,
     targetColumn: result.target_column,
@@ -15,11 +15,13 @@ export async function saveExperiment(result: ExperimentResult) {
   const experimentResult = result as unknown as Prisma.InputJsonValue;
   const config: Prisma.InputJsonValue = { trainSplit: 0.8, randomState: 42 };
 
+  await prisma.user.upsert({ where: { id: user.id }, update: { email: user.email, name: user.name }, create: { id: user.id, email: user.email, name: user.name } });
   return prisma.experiment.create({
     data: {
       name: `${result.dataset_name.replace(/\.csv$/i, "")} prediction`,
       problemType: result.problem_type,
       targetColumn: result.target_column,
+      user: { connect: { id: user.id } },
       config,
       result: experimentResult,
       dataset: {
@@ -43,8 +45,9 @@ export async function saveExperiment(result: ExperimentResult) {
   });
 }
 
-export async function listExperiments() {
+export async function listExperiments(userId: string) {
   return prisma.experiment.findMany({
+    where: { userId },
     orderBy: { createdAt: "desc" },
     take: 25,
     include: { dataset: true, modelResults: true },
