@@ -60,7 +60,7 @@ export default function Home() {
             <a className="rounded-lg bg-[#161614] px-5 py-3 text-center text-sm font-medium text-white shadow-sm transition hover:bg-[#33332f]" href="/experiments/new">
               Start an experiment <span aria-hidden="true">→</span>
             </a>
-            <a className="rounded-lg border border-[#d8d7d0] bg-white px-5 py-3 text-center text-sm font-medium transition hover:border-[#aaa8a0]" href="/datasets">
+            <a className="rounded-lg border border-[#d8d7d0] bg-white px-5 py-3 text-center text-sm font-medium transition hover:border-[#aaa8a0]" href="/experiments/new#demo">
               Try a demo dataset
             </a>
           </div>

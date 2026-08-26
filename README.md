@@ -22,6 +22,10 @@ graph LR
 
 The ML service is separate so Vercel can host the web product while longer-running Python workloads can be deployed to a suitable container host. The web layer will use `ML_API_URL`, avoiding provider-specific coupling.
 
+## Built-in demo datasets
+
+ML Lab bundles Iris Flowers and Wine Classification datasets through the ML service. They are safe, local to the service, and let visitors test the full workflow without uploading a file.
+
 ## Repository layout
 
 ```text

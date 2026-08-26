@@ -30,6 +30,25 @@ export function ExperimentSetup() {
   const [selectedModels, setSelectedModels] = useState<string[]>(["linear", "random_forest", "gradient_boosting"]);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "unavailable">("idle");
 
+  async function loadDemo(datasetName: "iris" | "wine") {
+    setError(null);
+    setIsAnalyzing(true);
+    try {
+      const response = await fetch(`/api/datasets/demo/${datasetName}`);
+      if (!response.ok) throw new Error("We couldn't load this demo dataset.");
+      const csv = await response.text();
+      const demoFile = new File([csv], `${datasetName}-demo.csv`, { type: "text/csv" });
+      setFile(demoFile);
+      setAnalysis(null);
+      setResult(null);
+      setTarget("");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "We couldn't load this demo dataset.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }
+
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const selected = event.target.files?.[0] ?? null;
     setAnalysis(null);
@@ -113,6 +132,7 @@ export function ExperimentSetup() {
           <form onSubmit={analyze}>
             <label className="block text-sm font-semibold" htmlFor="dataset">Upload a CSV</label><p className="mt-1 text-sm text-[#77766f]">Up to 10 MB · 50,000 rows · 100 columns</p>
             <div className="mt-5 rounded-xl border border-dashed border-[#cfcfc7] bg-[#fafbf8] p-7 text-center"><input id="dataset" className="mx-auto block max-w-full text-sm" type="file" accept=".csv,text/csv" onChange={handleFileChange} /><p className="mt-4 text-sm text-[#696861]">{file ? file.name : "Choose a file from your computer"}</p></div>
+            <div id="demo" className="mt-4 flex flex-wrap gap-2"><button className="rounded-lg border border-[#d5d4cd] px-3 py-2 text-xs font-medium" disabled={isAnalyzing} onClick={() => loadDemo("iris")} type="button">Try Iris demo</button><button className="rounded-lg border border-[#d5d4cd] px-3 py-2 text-xs font-medium" disabled={isAnalyzing} onClick={() => loadDemo("wine")} type="button">Try Wine demo</button></div>
             {error && <p className="mt-4 rounded-lg bg-[#fcf1ef] px-3 py-2.5 text-sm text-[#9b3a2e]" role="alert">{error}</p>}
             <button className="mt-5 rounded-lg bg-[#161614] px-4 py-2.5 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50" disabled={!file || isAnalyzing} type="submit">{isAnalyzing ? "Inspecting dataset…" : "Inspect dataset"}</button>
           </form>

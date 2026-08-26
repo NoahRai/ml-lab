@@ -5,6 +5,8 @@ from time import perf_counter
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import PlainTextResponse
+from sklearn.datasets import load_iris, load_wine
 from pydantic import BaseModel
 
 from app.config import settings
@@ -52,6 +54,20 @@ async def log_requests(request: Request, call_next):
 def health_check() -> HealthResponse:
     """Return a lightweight readiness response without invoking ML dependencies."""
     return HealthResponse(status="healthy", service="ml-service")
+
+
+@app.get("/dataset/demo/{dataset_name}", response_class=PlainTextResponse, tags=["datasets"])
+def download_demo_dataset(dataset_name: str) -> str:
+    """Provide safe bundled datasets without accepting or retaining user data."""
+    datasets = {"iris": load_iris, "wine": load_wine}
+    try:
+        bundle = datasets[dataset_name](as_frame=True)
+    except KeyError as error:
+        raise HTTPException(status_code=404, detail="Demo dataset not found.") from error
+    dataframe = bundle.frame.rename(columns={"target": "species" if dataset_name == "iris" else "wine_class"})
+    if dataset_name == "iris":
+        dataframe["species"] = dataframe["species"].map(dict(enumerate(bundle.target_names)))
+    return dataframe.to_csv(index=False)
 
 
 @app.post("/dataset/analyze", response_model=DatasetAnalysis, tags=["datasets"])

@@ -10,6 +10,14 @@ def test_health_check_returns_healthy_status() -> None:
     assert response.json() == {"status": "healthy", "service": "ml-service"}
 
 
+def test_iris_demo_dataset_is_a_valid_csv() -> None:
+    response = TestClient(app).get("/dataset/demo/iris")
+
+    assert response.status_code == 200
+    assert "species" in response.text.splitlines()[0]
+    assert len(response.text.splitlines()) == 151
+
+
 def test_dataset_analysis_returns_preview_and_column_types() -> None:
     content = "study_hours,attendance,final_grade\n2,80,71\n3,83,74\n4,85,77\n5,88,81\n6,90,83\n7,92,86\n8,94,89\n9,95,91\n10,96,93\n11,98,96\n"
     response = TestClient(app).post(
