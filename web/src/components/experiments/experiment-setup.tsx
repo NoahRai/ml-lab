@@ -28,6 +28,7 @@ export function ExperimentSetup() {
   const [result, setResult] = useState<ExperimentResult | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [selectedModels, setSelectedModels] = useState<string[]>(["linear", "random_forest", "gradient_boosting"]);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "unavailable">("idle");
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const selected = event.target.files?.[0] ?? null;
@@ -83,11 +84,19 @@ export function ExperimentSetup() {
       const payload: ExperimentResult | DatasetApiError = await response.json();
       if (!response.ok) throw new Error("detail" in payload ? payload.detail : "We couldn't run this experiment.");
       setResult(payload as ExperimentResult);
+      setSaveStatus("idle");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "We couldn't run this experiment.");
     } finally {
       setIsRunning(false);
     }
+  }
+
+  async function saveResult() {
+    if (!result) return;
+    setSaveStatus("saving");
+    const response = await fetch("/api/experiments", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(result) });
+    setSaveStatus(response.ok ? "saved" : "unavailable");
   }
 
   function toggleModel(modelType: string) {
@@ -112,7 +121,7 @@ export function ExperimentSetup() {
             <div className="mt-8 grid gap-5 border-t border-[#e9e8e3] pt-7 sm:grid-cols-2"><label className="text-sm font-medium">Target column<select className="mt-2 block w-full rounded-lg border border-[#dcdad3] bg-white px-3 py-2.5 text-sm" value={target} onChange={(event) => setTarget(event.target.value)}>{analysis.potential_target_columns.map((column) => <option key={column}>{column}</option>)}</select></label><label className="text-sm font-medium">Problem type<select className="mt-2 block w-full rounded-lg border border-[#dcdad3] bg-white px-3 py-2.5 text-sm" value={problemType} onChange={(event) => setProblemType(event.target.value as ProblemType)}><option value="classification">Classification</option><option value="regression">Regression</option></select></label></div>
             <fieldset className="mt-7 border-t border-[#e9e8e3] pt-7"><legend className="text-sm font-semibold">Models to compare</legend><p className="mt-1 text-sm text-[#77766f]">Each model uses the same held-out test data.</p><div className="mt-4 grid gap-3">{modelOptions.map((model) => <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-[#e1e0da] p-3 has-[:checked]:border-[#7d967b] has-[:checked]:bg-[#f6f9f5]" key={model.id}><input className="mt-1" checked={selectedModels.includes(model.id)} onChange={() => toggleModel(model.id)} type="checkbox" /><span><span className="block text-sm font-medium">{model.label}</span><span className="mt-0.5 block text-xs text-[#74736c]">{model.description}</span></span></label>)}</div></fieldset>
             <div className="mt-5 flex items-center justify-between gap-4 rounded-xl bg-[#f5f6f2] p-4"><p className="text-sm leading-6 text-[#62625b]">Run a reproducible 80/20 train/test comparison.</p><button className="shrink-0 rounded-lg bg-[#161614] px-4 py-2.5 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50" disabled={!target || !selectedModels.length || isRunning} onClick={runBaseline} type="button">{isRunning ? "Training models…" : "Run experiment"}</button></div>
-            {result && <ResultsDashboard result={result} />}
+            {result && <><ResultsDashboard result={result} /><div className="mt-5 flex items-center gap-3"><button className="rounded-lg border border-[#d5d4cd] px-4 py-2.5 text-sm font-medium disabled:opacity-50" disabled={saveStatus === "saving" || saveStatus === "saved"} onClick={saveResult} type="button">{saveStatus === "saving" ? "Saving…" : saveStatus === "saved" ? "Saved" : "Save experiment"}</button>{saveStatus === "unavailable" && <span className="text-xs text-[#77766f]">Add DATABASE_URL to enable saved history.</span>}</div></>}
             <div className="mt-8 overflow-x-auto"><h3 className="text-sm font-semibold">Column details</h3><table className="mt-3 w-full min-w-max text-left text-sm"><thead className="border-y border-[#e8e7e1] text-[#66655e]"><tr><th className="px-3 py-2 font-medium">Column</th><th className="px-3 py-2 font-medium">Type</th><th className="px-3 py-2 font-medium">Unique</th><th className="px-3 py-2 font-medium">Missing</th><th className="px-3 py-2 font-medium">Statistics</th></tr></thead><tbody>{analysis.column_summaries.map((column) => <tr className="border-b border-[#f0efea]" key={column.name}><td className="px-3 py-2 font-medium">{column.name}</td><td className="px-3 py-2 capitalize text-[#575650]">{column.kind}</td><td className="px-3 py-2 text-[#575650]">{formatNumber(column.unique_count)}</td><td className="px-3 py-2 text-[#575650]">{formatNumber(column.missing_count)}</td><td className="px-3 py-2 text-[#575650]">{column.mean === null ? "—" : `min ${column.minimum} · avg ${column.mean} · max ${column.maximum}`}</td></tr>)}</tbody></table></div>
             <div className="mt-8 overflow-x-auto"><h3 className="text-sm font-semibold">Preview</h3><table className="mt-3 w-full min-w-max text-left text-sm"><thead className="border-y border-[#e8e7e1] text-[#66655e]"><tr>{analysis.column_summaries.map((column) => <th className="px-3 py-2 font-medium" key={column.name}>{column.name}</th>)}</tr></thead><tbody>{analysis.preview.map((row, index) => <tr className="border-b border-[#f0efea]" key={index}>{analysis.column_summaries.map((column) => <td className="px-3 py-2 text-[#575650]" key={column.name}>{row[column.name] === null ? "—" : String(row[column.name])}</td>)}</tr>)}</tbody></table></div>
           </div>}

@@ -50,6 +50,18 @@ uvicorn app.main:app --reload
 
 Visit `http://localhost:8000/health` to confirm the service is healthy.
 
+### PostgreSQL persistence
+
+Set `DATABASE_URL` to a Supabase Postgres or another PostgreSQL database, then run:
+
+```bash
+cd web
+npm run db:generate
+npm run db:migrate -- --name init
+```
+
+Saved experiments store metadata, model metrics, settings, and result artifacts; raw uploaded CSV bytes are not persisted in the relational database.
+
 ## API (Phase 1)
 
 `GET /health`

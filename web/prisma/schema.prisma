@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ExperimentStatus {
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id          String       @id @default(cuid())
+  email       String       @unique
+  name        String?
+  createdAt   DateTime     @default(now())
+  experiments Experiment[]
+}
+
+model Dataset {
+  id          String       @id @default(cuid())
+  name        String
+  rowCount    Int
+  columnCount Int
+  metadata    Json
+  createdAt   DateTime     @default(now())
+  experiments Experiment[]
+}
+
+model Experiment {
+  id          String           @id @default(cuid())
+  userId      String?
+  user        User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  datasetId   String
+  dataset     Dataset          @relation(fields: [datasetId], references: [id])
+  name        String
+  problemType String
+  targetColumn String
+  status      ExperimentStatus @default(COMPLETED)
+  config      Json
+  result      Json
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  modelResults ModelResult[]
+}
+
+model ModelResult {
+  id             String     @id @default(cuid())
+  experimentId   String
+  experiment     Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  modelType      String
+  metrics        Json
+  trainingTimeMs Float
+  featureImportance Json?
+  createdAt      DateTime   @default(now())
+}
