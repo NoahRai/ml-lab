@@ -3,6 +3,7 @@
 import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from "recharts";
 
 import type { ExperimentResult } from "@/lib/datasets";
+import { ExplanationPanel } from "@/components/experiments/explanation-panel";
 
 interface ResultsDashboardProps {
   result: ExperimentResult;
@@ -36,6 +37,7 @@ export function ResultsDashboard({ result }: ResultsDashboardProps) {
       {isRegression ? <div className="rounded-xl border border-[#e3e2dc] p-5"><h3 className="font-semibold">Actual vs. predicted</h3><p className="mt-1 text-xs text-[#74736c]">Each point is one held-out test prediction.</p><div className="mt-5 h-64"><ResponsiveContainer width="100%" height="100%"><ScatterChart margin={{ left: 5 }}><CartesianGrid stroke="#ecebe5" /><XAxis dataKey="actual" name="Actual" type="number" /><YAxis dataKey="predicted" name="Predicted" type="number" /><Tooltip cursor={{ strokeDasharray: "3 3" }} /><Scatter data={result.prediction_points} fill="#6f8b6f" /></ScatterChart></ResponsiveContainer></div></div> : result.confusion_matrix && <div className="rounded-xl border border-[#e3e2dc] p-5"><h3 className="font-semibold">Confusion matrix</h3><p className="mt-1 text-xs text-[#74736c]">Rows are actual classes; columns are predicted classes.</p><div className="mt-4 overflow-x-auto"><table className="text-center text-sm"><thead><tr><th className="p-2 text-left font-medium">Actual / predicted</th>{result.confusion_matrix.labels.map((label) => <th className="p-2 font-medium" key={label}>{label}</th>)}</tr></thead><tbody>{result.confusion_matrix.matrix.map((row, rowIndex) => <tr key={result.confusion_matrix?.labels[rowIndex]}><th className="p-2 text-left font-medium">{result.confusion_matrix?.labels[rowIndex]}</th>{row.map((value, columnIndex) => <td className="border border-[#e6e5df] bg-[#f5f7f3] p-2" key={columnIndex}>{value}</td>)}</tr>)}</tbody></table></div></div>}
 
       <div className="rounded-xl border border-[#e3e2dc] p-5"><h3 className="font-semibold">Error analysis</h3><p className="mt-1 text-xs text-[#74736c]">{isRegression ? "The largest absolute prediction errors on the held-out test set." : "Incorrect classifications from the held-out test set."}</p>{result.error_analysis.length === 0 ? <p className="mt-4 text-sm text-[#62625b]">No errors appeared in this test sample.</p> : <div className="mt-4 overflow-x-auto"><table className="w-full min-w-max text-left text-sm"><thead className="border-y border-[#e8e7e1] text-[#66655e]"><tr><th className="px-2 py-2 font-medium">Actual</th><th className="px-2 py-2 font-medium">Predicted</th>{isRegression && <th className="px-2 py-2 font-medium">Absolute error</th>}</tr></thead><tbody>{result.error_analysis.map((row, index) => <tr className="border-b border-[#f0efea]" key={index}><td className="px-2 py-2">{row.actual}</td><td className="px-2 py-2">{row.predicted}</td>{isRegression && <td className="px-2 py-2">{row.error?.toFixed(4)}</td>}</tr>)}</tbody></table></div>}</div>
+      <ExplanationPanel result={result} />
       <p className="text-xs leading-5 text-[#6d706a]">{result.notes[0]}</p>
     </section>
   );

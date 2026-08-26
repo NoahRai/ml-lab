@@ -62,6 +62,10 @@ npm run db:migrate -- --name init
 
 Saved experiments store metadata, model metrics, settings, and result artifacts; raw uploaded CSV bytes are not persisted in the relational database.
 
+### AI explanations
+
+Set `OPENAI_API_KEY` (and optionally `OPENAI_MODEL`) on the web server to enable **Explain My Results**. The API receives only a structured summary of computed metrics, model timings, feature-importance values, and error counts—not the raw CSV. Its prompt explicitly prohibits inventing experiment facts and separates results from hypotheses.
+
 ## API (Phase 1)
 
 `GET /health`
