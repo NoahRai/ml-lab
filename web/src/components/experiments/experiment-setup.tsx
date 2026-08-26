@@ -11,6 +11,7 @@ const modelOptions = [
   { id: "linear", label: "Linear / Logistic Regression", description: "A fast, interpretable baseline." },
   { id: "random_forest", label: "Random Forest", description: "An ensemble for nonlinear patterns." },
   { id: "gradient_boosting", label: "Gradient Boosting", description: "A strong tree-based baseline." },
+  { id: "neural_network", label: "Neural Network", description: "A PyTorch model for tabular patterns." },
 ];
 
 function formatNumber(value: number) {

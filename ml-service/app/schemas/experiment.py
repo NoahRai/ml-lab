@@ -10,6 +10,7 @@ class ModelResult(BaseModel):
     name: str
     metrics: dict[str, float]
     training_time_ms: float
+    training_history: list[dict[str, float]] = Field(default_factory=list)
 
 
 class FeatureImportance(BaseModel):

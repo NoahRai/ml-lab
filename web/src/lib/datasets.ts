@@ -34,6 +34,7 @@ export interface ExperimentModelResult {
   name: string;
   metrics: Record<string, number>;
   training_time_ms: number;
+  training_history: Array<{ epoch: number; training_loss: number; validation_loss: number }>;
 }
 
 export interface ExperimentResult {

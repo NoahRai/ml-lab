@@ -1,6 +1,6 @@
 "use client";
 
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from "recharts";
 
 import type { ExperimentResult } from "@/lib/datasets";
 
@@ -15,6 +15,7 @@ function prettyMetric(metric: string) {
 export function ResultsDashboard({ result }: ResultsDashboardProps) {
   const modelPerformance = result.models.map((model) => ({ name: model.name.replace(" Regression", ""), value: model.metrics[result.primary_metric_name] }));
   const isRegression = result.problem_type === "regression";
+  const neuralNetworkResult = result.models.find((model) => model.name === "Neural Network");
 
   return (
     <section className="mt-8 space-y-6 border-t border-[#e9e8e3] pt-8">
@@ -29,6 +30,8 @@ export function ResultsDashboard({ result }: ResultsDashboardProps) {
       </div>
 
       {result.feature_importance.length > 0 && <div className="rounded-xl border border-[#e3e2dc] p-5"><h3 className="font-semibold">Feature importance</h3><p className="mt-1 text-xs text-[#74736c]">Importance reflects this model&apos;s learned patterns, not causation.</p><div className="mt-5 h-64"><ResponsiveContainer width="100%" height="100%"><BarChart data={result.feature_importance.map((item) => ({ ...item, importance: item.importance * 100 }))} layout="vertical" margin={{ left: 18 }}><CartesianGrid horizontal={false} stroke="#ecebe5" /><XAxis type="number" unit="%" /><YAxis dataKey="feature" type="category" width={125} tick={{ fontSize: 12 }} /><Tooltip formatter={(value) => `${Number(value ?? 0).toFixed(1)}%`} /><Bar dataKey="importance" fill="#9aa993" radius={[0, 4, 4, 0]} /></BarChart></ResponsiveContainer></div></div>}
+
+      {neuralNetworkResult && neuralNetworkResult.training_history.length > 0 && <div className="rounded-xl border border-[#e3e2dc] p-5"><h3 className="font-semibold">Neural network learning curve</h3><p className="mt-1 text-xs text-[#74736c]">Training and validation loss by epoch. Training stops early when validation loss stops improving.</p><div className="mt-5 h-64"><ResponsiveContainer width="100%" height="100%"><LineChart data={neuralNetworkResult.training_history}><CartesianGrid stroke="#ecebe5" /><XAxis dataKey="epoch" /><YAxis /><Tooltip /><Legend /><Line dataKey="training_loss" dot={false} stroke="#6f8b6f" type="monotone" /><Line dataKey="validation_loss" dot={false} stroke="#b27d5c" type="monotone" /></LineChart></ResponsiveContainer></div></div>}
 
       {isRegression ? <div className="rounded-xl border border-[#e3e2dc] p-5"><h3 className="font-semibold">Actual vs. predicted</h3><p className="mt-1 text-xs text-[#74736c]">Each point is one held-out test prediction.</p><div className="mt-5 h-64"><ResponsiveContainer width="100%" height="100%"><ScatterChart margin={{ left: 5 }}><CartesianGrid stroke="#ecebe5" /><XAxis dataKey="actual" name="Actual" type="number" /><YAxis dataKey="predicted" name="Predicted" type="number" /><Tooltip cursor={{ strokeDasharray: "3 3" }} /><Scatter data={result.prediction_points} fill="#6f8b6f" /></ScatterChart></ResponsiveContainer></div></div> : result.confusion_matrix && <div className="rounded-xl border border-[#e3e2dc] p-5"><h3 className="font-semibold">Confusion matrix</h3><p className="mt-1 text-xs text-[#74736c]">Rows are actual classes; columns are predicted classes.</p><div className="mt-4 overflow-x-auto"><table className="text-center text-sm"><thead><tr><th className="p-2 text-left font-medium">Actual / predicted</th>{result.confusion_matrix.labels.map((label) => <th className="p-2 font-medium" key={label}>{label}</th>)}</tr></thead><tbody>{result.confusion_matrix.matrix.map((row, rowIndex) => <tr key={result.confusion_matrix?.labels[rowIndex]}><th className="p-2 text-left font-medium">{result.confusion_matrix?.labels[rowIndex]}</th>{row.map((value, columnIndex) => <td className="border border-[#e6e5df] bg-[#f5f7f3] p-2" key={columnIndex}>{value}</td>)}</tr>)}</tbody></table></div></div>}
 

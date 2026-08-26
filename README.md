@@ -8,7 +8,7 @@ ML Lab is an interactive experimentation platform that helps people upload tabul
 
 ## Phase 1 status
 
-This repository provides end-to-end tabular experiments: CSV inspection, target/task selection, and fair comparisons between linear/logistic regression, Random Forest, and Gradient Boosting with a leakage-safe 80/20 split. Additional model families, storage, and AI explanations are deliberate later phases.
+This repository provides end-to-end tabular experiments: CSV inspection, target/task selection, and fair comparisons between linear/logistic regression, Random Forest, Gradient Boosting, and a PyTorch neural network with a leakage-safe 80/20 split. Storage and AI explanations are deliberate later phases.
 
 ## Architecture
 

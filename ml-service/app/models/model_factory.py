@@ -3,6 +3,7 @@ from typing import Any
 from app.models.base_model import BaseMLModel
 from app.models.gradient_boosting_model import GradientBoostingModel
 from app.models.linear_model import LinearModel
+from app.models.neural_network_model import NeuralNetworkModel
 from app.models.random_forest_model import RandomForestModel
 
 
@@ -13,6 +14,7 @@ class ModelFactory:
         "linear": LinearModel,
         "random_forest": RandomForestModel,
         "gradient_boosting": GradientBoostingModel,
+        "neural_network": NeuralNetworkModel,
     }
 
     @classmethod

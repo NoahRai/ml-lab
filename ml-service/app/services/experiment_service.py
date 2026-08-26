@@ -65,6 +65,7 @@ class ExperimentService:
                     name=model.name,
                     metrics=self._evaluate(y_test, predictions, problem_type),
                     training_time_ms=model.training_time_ms or 0,
+                    training_history=getattr(model, "training_history", []),
                 )
             )
         primary_metric_name = "r2" if problem_type == "regression" else "accuracy"
@@ -155,8 +156,8 @@ class ExperimentService:
     def _validate_models(model_types: list[str]) -> None:
         if not model_types:
             raise DatasetValidationError("Select at least one model to run.")
-        if len(model_types) > 3:
-            raise DatasetValidationError("You can compare up to three models in one experiment.")
+        if len(model_types) > 4:
+            raise DatasetValidationError("You can compare up to four models in one experiment.")
         if len(set(model_types)) != len(model_types):
             raise DatasetValidationError("Select each model only once.")
 
