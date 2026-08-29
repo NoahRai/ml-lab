@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Bklit registry components are vendored UI source with its own lint rules.
+    "src/components/charts/**",
   ]),
 ]);
 

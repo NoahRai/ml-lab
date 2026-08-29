@@ -1,3 +1,7 @@
+"use client";
+
+import { motion, useReducedMotion } from "motion/react";
+
 const features = [
   {
     number: "01",
@@ -26,6 +30,11 @@ const steps = [
 ];
 
 export default function Home() {
+  const shouldReduceMotion = useReducedMotion();
+  const introTransition = shouldReduceMotion
+    ? { duration: 0 }
+    : { duration: 0.55, ease: "easeOut" as const };
+
   return (
     <main className="min-h-screen overflow-hidden bg-[#fafaf9] text-[#161614]">
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-5 lg:px-8">
@@ -45,11 +54,21 @@ export default function Home() {
 
       <section id="top" className="relative mx-auto max-w-6xl px-6 pb-24 pt-16 lg:px-8 lg:pb-32 lg:pt-24">
         <div className="absolute -right-56 top-2 -z-0 h-[29rem] w-[29rem] rounded-full bg-[#e9eee8] blur-3xl" />
-        <div className="relative z-10 max-w-3xl">
-          <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#dcded7] bg-white/80 px-3 py-1.5 text-xs font-medium text-[#5c665b] shadow-sm">
+        <motion.div
+          animate={{ opacity: 1, y: 0 }}
+          className="relative z-10 max-w-3xl"
+          initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 18 }}
+          transition={introTransition}
+        >
+          <motion.p
+            animate={{ opacity: 1, scale: 1 }}
+            className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#dcded7] bg-white/80 px-3 py-1.5 text-xs font-medium text-[#5c665b] shadow-sm"
+            initial={{ opacity: 0, scale: shouldReduceMotion ? 1 : 0.96 }}
+            transition={{ ...introTransition, delay: shouldReduceMotion ? 0 : 0.08 }}
+          >
             <span className="h-1.5 w-1.5 rounded-full bg-[#5f8163]" />
             A calmer way to experiment with ML
-          </p>
+          </motion.p>
           <h1 className="max-w-3xl text-5xl font-semibold leading-[1.04] tracking-[-0.055em] sm:text-6xl lg:text-7xl">
             Understand your machine learning models.
           </h1>
@@ -57,16 +76,21 @@ export default function Home() {
             Upload a dataset, compare models, analyze errors, and understand why your models behave the way they do.
           </p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-            <a className="rounded-lg bg-[#161614] px-5 py-3 text-center text-sm font-medium text-white shadow-sm transition hover:bg-[#33332f]" href="/experiments/new">
+            <motion.a whileHover={shouldReduceMotion ? undefined : { y: -2 }} whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }} className="rounded-lg bg-[#161614] px-5 py-3 text-center text-sm font-medium text-white shadow-sm transition hover:bg-[#33332f]" href="/experiments/new">
               Start an experiment <span aria-hidden="true">→</span>
-            </a>
+            </motion.a>
             <a className="rounded-lg border border-[#d8d7d0] bg-white px-5 py-3 text-center text-sm font-medium transition hover:border-[#aaa8a0]" href="/experiments/new#demo">
               Try a demo dataset
             </a>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="relative z-10 mt-16 grid max-w-5xl gap-3 rounded-2xl border border-[#e3e2dc] bg-white p-4 shadow-[0_20px_60px_-30px_rgba(31,31,25,0.28)] sm:grid-cols-[1.1fr_1fr] sm:p-5">
+        <motion.div
+          animate={{ opacity: 1, y: 0 }}
+          className="relative z-10 mt-16 grid max-w-5xl gap-3 rounded-2xl border border-[#e3e2dc] bg-white p-4 shadow-[0_20px_60px_-30px_rgba(31,31,25,0.28)] sm:grid-cols-[1.1fr_1fr] sm:p-5"
+          initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 24 }}
+          transition={{ ...introTransition, delay: shouldReduceMotion ? 0 : 0.18 }}
+        >
           <div className="rounded-xl bg-[#f5f6f2] p-5">
             <div className="flex items-center justify-between text-xs text-[#72716a]"><span>EXPERIMENT OVERVIEW</span><span>Completed just now</span></div>
             <h2 className="mt-6 text-xl font-semibold tracking-tight">Student Performance</h2>
@@ -83,12 +107,12 @@ export default function Home() {
               {[['Random Forest', '87%', '0.87'], ['Gradient Boosting', '84%', '0.84'], ['Neural Network', '81%', '0.81'], ['Linear Regression', '74%', '0.74']].map(([name, width, value]) => (
                 <div key={name}>
                   <div className="mb-2 flex justify-between text-sm"><span>{name}</span><span className="font-medium">{value}</span></div>
-                  <div className="h-2 overflow-hidden rounded-full bg-[#efefeb]"><div className="h-full rounded-full bg-[#6f8b6f]" style={{ width }} /></div>
+                  <div className="h-2 overflow-hidden rounded-full bg-[#efefeb]"><motion.div animate={{ width }} className="h-full rounded-full bg-[#6f8b6f]" initial={{ width: shouldReduceMotion ? width : 0 }} transition={{ ...introTransition, delay: shouldReduceMotion ? 0 : 0.35 }} /></div>
                 </div>
               ))}
             </div>
           </div>
-        </div>
+        </motion.div>
       </section>
 
       <section id="features" className="border-y border-[#e7e6e0] bg-white">
